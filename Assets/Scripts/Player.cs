@@ -11,8 +11,8 @@ using Mirror;
 
 public class Player : NetworkBehaviour
 {
-    [SerializeField] GameObject m_Ball;
-    [SerializeField] GameObject m_BallCamera;
+    [SerializeField] Ball m_Ball;
+    [SerializeField] BallCamera m_BallCamera;
 
     #region Start & Stop Callbacks
 
@@ -21,25 +21,25 @@ public class Player : NetworkBehaviour
     /// <para>This could be triggered by NetworkServer.Listen() for objects in the scene, or by NetworkServer.Spawn() for objects that are dynamically created.</para>
     /// <para>This will be called for objects on a "host" as well as for object on a dedicated server.</para>
     /// </summary>
-    public override void OnStartServer() { }
+    public override void OnStartServer() { Debug.Log("OnStartServer"); }
 
     /// <summary>
     /// Invoked on the server when the object is unspawned
     /// <para>Useful for saving object data in persistent storage</para>
     /// </summary>
-    public override void OnStopServer() { }
+    public override void OnStopServer() { Debug.Log("OnStopServer"); }
 
     /// <summary>
     /// Called on every NetworkBehaviour when it is activated on a client.
     /// <para>Objects on the host have this function called, as there is a local client on the host. The values of SyncVars on object are guaranteed to be initialized correctly with the latest state from the server when this function is called on the client.</para>
     /// </summary>
-    public override void OnStartClient() { }
+    public override void OnStartClient() { Debug.Log("OnStartClient"); }
 
     /// <summary>
     /// This is invoked on clients when the server has caused this object to be destroyed.
     /// <para>This can be used as a hook to invoke effects or do client specific cleanup.</para>
     /// </summary>
-    public override void OnStopClient() { }
+    public override void OnStopClient() { Debug.Log("OnStopClient"); }
 
     /// <summary>
     /// Called when the local player object has been set up.
@@ -47,29 +47,52 @@ public class Player : NetworkBehaviour
     /// </summary>
     public override void OnStartLocalPlayer()
     {
-        Debug.Log("OnStartLocalPlayer");
-        Instantiate(m_Ball, Vector3.one, Quaternion.identity);
-        Instantiate(m_BallCamera, Vector3.one, Quaternion.identity);
+        CmdSpawnBall();
+
+        m_BallCamera = Instantiate(m_BallCamera, Vector3.one, Quaternion.identity);
+    }
+
+    [Command]
+    void CmdSpawnBall()
+    {
+        Debug.Log("CmdSpawnBall()");
+        Ball _Ball = Instantiate(m_Ball, Vector3.one, Quaternion.identity);
+        _Ball.Player = this;
+        NetworkServer.Spawn(_Ball.gameObject, connectionToClient);
+
+        RpcOnBallSpawned(_Ball);
+    }
+
+    [ClientRpc]
+    void RpcOnBallSpawned(Ball a_Ball)
+    {
+        Debug.Log("SetBallReference");
+        a_Ball.Player = this;
+
+        if (hasAuthority)
+        {
+            m_BallCamera.Ball = a_Ball;
+        }
     }
 
     /// <summary>
     /// Called when the local player object is being stopped.
     /// <para>This happens before OnStopClient(), as it may be triggered by an ownership message from the server, or because the player object is being destroyed. This is an appropriate place to deactivate components or functionality that should only be active for the local player, such as cameras and input.</para>
     /// </summary>
-    public override void OnStopLocalPlayer() {}
+    public override void OnStopLocalPlayer() { Debug.Log("OnStopLocalPlayer"); }
 
     /// <summary>
     /// This is invoked on behaviours that have authority, based on context and <see cref="NetworkIdentity.hasAuthority">NetworkIdentity.hasAuthority</see>.
     /// <para>This is called after <see cref="OnStartServer">OnStartServer</see> and before <see cref="OnStartClient">OnStartClient.</see></para>
     /// <para>When <see cref="NetworkIdentity.AssignClientAuthority">AssignClientAuthority</see> is called on the server, this will be called on the client that owns the object. When an object is spawned with <see cref="NetworkServer.Spawn">NetworkServer.Spawn</see> with a NetworkConnectionToClient parameter included, this will be called on the client that owns the object.</para>
     /// </summary>
-    public override void OnStartAuthority() { }
+    public override void OnStartAuthority() { Debug.Log("OnStartAuthority"); }
 
     /// <summary>
     /// This is invoked on behaviours when authority is removed.
     /// <para>When NetworkIdentity.RemoveClientAuthority is called on the server, this will be called on the client that owns the object.</para>
     /// </summary>
-    public override void OnStopAuthority() { }
+    public override void OnStopAuthority() { Debug.Log("OnStopAuthority"); }
 
     #endregion
 }
