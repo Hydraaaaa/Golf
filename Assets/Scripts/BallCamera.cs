@@ -8,6 +8,8 @@ public class BallCamera : MonoBehaviour
 
     void Update()
     {
+        transform.eulerAngles += new Vector3(-Input.GetAxisRaw("Mouse Y"), Input.GetAxisRaw("Mouse X"), 0);
+
         if (Ball != null)
         {
             transform.position = Ball.transform.position - transform.forward * 5;

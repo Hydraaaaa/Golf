@@ -56,7 +56,7 @@ public class Player : NetworkBehaviour
     void CmdSpawnBall()
     {
         Debug.Log("CmdSpawnBall()");
-        Ball _Ball = Instantiate(m_Ball, Vector3.one, Quaternion.identity);
+        Ball _Ball = Instantiate(m_Ball, new Vector3(12, 1, -20), Quaternion.identity);
         _Ball.Player = this;
         NetworkServer.Spawn(_Ball.gameObject, connectionToClient);
 
