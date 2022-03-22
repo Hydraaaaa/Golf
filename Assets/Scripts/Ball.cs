@@ -11,6 +11,9 @@ using Mirror;
 
 public class Ball : NetworkBehaviour
 {
+    public Rigidbody Rigidbody => m_Rigidbody;
+
+    [SerializeField] Rigidbody m_Rigidbody;
     public Player Player { get; set; }
 
     public override void OnStartAuthority()

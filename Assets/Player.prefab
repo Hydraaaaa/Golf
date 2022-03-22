@@ -63,5 +63,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
-  m_Ball: {fileID: 5067080546182165791, guid: b079d2192704161409b0e2e727400100, type: 3}
-  m_BallCamera: {fileID: 3204406467654728302, guid: bd65f7fced9825843b039b092ac9a048, type: 3}
+  m_BallPrefab: {fileID: 5067080546182165791, guid: b079d2192704161409b0e2e727400100, type: 3}
+  m_BallCamera: {fileID: 2645213479988484800, guid: bd65f7fced9825843b039b092ac9a048, type: 3}
