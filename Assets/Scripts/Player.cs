@@ -14,6 +14,8 @@ public class Player : NetworkBehaviour
     [SerializeField] Ball m_BallPrefab;
     [SerializeField] Camera m_BallCamera;
 
+    [SyncVar] int m_CurrentStroke;
+
     Ball m_Ball;
 
     bool m_IsPlaying;
@@ -24,42 +26,52 @@ public class Player : NetworkBehaviour
 
     void Update()
     {
-
-        if (m_IsPlaying)
+        if (hasAuthority)
         {
-            if (Input.GetMouseButtonDown(0))
+            if (m_IsPlaying)
             {
-                m_IsAiming = true;
-                m_Power = 0;
-            }
-
-            if (Input.GetMouseButtonUp(0))
-            {
-                m_IsAiming = false;
-
-                if (m_Power > 0)
+                if (Input.GetMouseButtonDown(0))
                 {
-                    Vector3 _Forward = m_BallCamera.transform.forward;
-                    _Forward.y = 0;
-                    _Forward.Normalize();
+                    m_IsAiming = true;
+                    m_Power = 0;
+                }
 
-                    m_Ball.Rigidbody.AddForce(_Forward * m_Power, ForceMode.Impulse);
+                if (Input.GetMouseButtonUp(0))
+                {
+                    m_IsAiming = false;
 
-                    Debug.Log($"Fired at power {m_Power}");
+                    if (m_Power > 0)
+                    {
+                        Vector3 _Forward = m_BallCamera.transform.forward;
+                        _Forward.y = 0;
+                        _Forward.Normalize();
+
+                        m_Ball.Rigidbody.AddForce(_Forward * m_Power * 3, ForceMode.Impulse);
+
+                        Debug.Log($"Fired at power {m_Power}");
+                    }
+                }
+
+                if (m_IsAiming)
+                {
+                    m_Power = Mathf.Clamp(m_Power + Input.GetAxisRaw("Mouse Y"), 0, 10);
+                }
+                else
+                {
+                    m_BallCamera.transform.eulerAngles += new Vector3(-Input.GetAxisRaw("Mouse Y"), Input.GetAxisRaw("Mouse X"), 0);
+
+                    if (m_Ball != null)
+                    {
+                        m_BallCamera.transform.position = m_Ball.transform.position - m_BallCamera.transform.forward * 5;
+                    }
                 }
             }
 
-            if (m_IsAiming)
+            if (isServer)
             {
-                m_Power = Mathf.Clamp(m_Power + Input.GetAxisRaw("Mouse Y"), 0, 10);
-            }
-            else
-            {
-                m_BallCamera.transform.eulerAngles += new Vector3(-Input.GetAxisRaw("Mouse Y"), Input.GetAxisRaw("Mouse X"), 0);
-
-                if (m_Ball != null)
+                if (Input.GetKeyDown(KeyCode.S))
                 {
-                    m_BallCamera.transform.position = m_Ball.transform.position - m_BallCamera.transform.forward * 5;
+                    GameState.Instance.NextStage();
                 }
             }
         }
@@ -78,7 +90,7 @@ public class Player : NetworkBehaviour
     [Command]
     void CmdSpawnBall()
     {
-        m_Ball = Instantiate(m_BallPrefab, new Vector3(12, 1, -20), Quaternion.identity);
+        m_Ball = Instantiate(m_BallPrefab, new Vector3(4, 1, -20), Quaternion.identity);
         m_Ball.Player = this;
         NetworkServer.Spawn(m_Ball.gameObject, connectionToClient);
 
