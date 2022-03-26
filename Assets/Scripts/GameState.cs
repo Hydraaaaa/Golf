@@ -66,7 +66,7 @@ public class GameState : NetworkBehaviour
 
             Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, Quaternion.identity);
             _Ball.Player = m_Players[i];
-            NetworkServer.Spawn(_Ball.gameObject, connectionToClient);
+            NetworkServer.Spawn(_Ball.gameObject, m_Players[i].connectionToClient);
 
             m_Players[i].OnStartStage(_Ball);
         }
