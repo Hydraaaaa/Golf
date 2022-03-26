@@ -11,9 +11,12 @@ using Mirror;
 
 public class Player : NetworkBehaviour
 {
-    [SerializeField] Ball m_BallPrefab;
     [SerializeField] Camera m_BallCamera;
+    [SerializeField] float m_MaxPower = 10.0f;
 
+    public int CurrentStroke => m_CurrentStroke;
+
+    // TODO: Replace SyncVar with populating GameState stroke count
     [SyncVar] int m_CurrentStroke;
 
     Ball m_Ball;
@@ -34,6 +37,9 @@ public class Player : NetworkBehaviour
                 {
                     m_IsAiming = true;
                     m_Power = 0;
+
+                    Cursor.lockState = CursorLockMode.Locked;
+                    Cursor.visible = false;
                 }
 
                 if (Input.GetMouseButtonUp(0))
@@ -50,57 +56,69 @@ public class Player : NetworkBehaviour
 
                         Debug.Log($"Fired at power {m_Power}");
                     }
+
+                    UI.Instance.PowerBar.fillAmount = 0;
                 }
 
                 if (m_IsAiming)
                 {
-                    m_Power = Mathf.Clamp(m_Power + Input.GetAxisRaw("Mouse Y"), 0, 10);
+                    m_Power = Mathf.Clamp(m_Power + Input.GetAxisRaw("Mouse Y"), 0, m_MaxPower);
+
+                    UI.Instance.PowerBar.fillAmount = m_Power / m_MaxPower;
                 }
                 else
                 {
                     m_BallCamera.transform.eulerAngles += new Vector3(-Input.GetAxisRaw("Mouse Y"), Input.GetAxisRaw("Mouse X"), 0);
+                }
 
-                    if (m_Ball != null)
-                    {
-                        m_BallCamera.transform.position = m_Ball.transform.position - m_BallCamera.transform.forward * 5;
-                    }
+                if (m_Ball != null)
+                {
+                    m_BallCamera.transform.position = m_Ball.transform.position - m_BallCamera.transform.forward * 5;
                 }
             }
 
             if (isServer)
             {
-                if (Input.GetKeyDown(KeyCode.S))
+                if (Input.GetKeyDown(KeyCode.Space))
                 {
-                    GameState.Instance.NextStage();
+                    if (GameState.Instance.CurrentStage == -1)
+                    {
+                        GameState.Instance.NextStage();
+                    }
                 }
             }
         }
     }
 
+    public override void OnStartServer()
+    {
+        GameState.Instance.AddPlayer(this);
+    }
+
+    public override void OnStopServer()
+    {
+        GameState.Instance.RemovePlayer(this);
+    }
+
     public override void OnStartLocalPlayer()
     {
-        // TODO: Wait for next stage to begin, instead of immediately spawning
-        CmdSpawnBall();
-
         m_BallCamera = Instantiate(m_BallCamera, Vector3.one, Quaternion.identity);
+
+        m_IsPlaying = false;
+    }
+
+    [ClientRpc]
+    public void OnStartStage(Ball a_Ball)
+    {
+        m_Ball = a_Ball;
+        a_Ball.Player = this;
 
         m_IsPlaying = true;
     }
 
     [Command]
-    void CmdSpawnBall()
+    public void CmdHoleTriggered(Player a_Player)
     {
-        m_Ball = Instantiate(m_BallPrefab, new Vector3(4, 1, -20), Quaternion.identity);
-        m_Ball.Player = this;
-        NetworkServer.Spawn(m_Ball.gameObject, connectionToClient);
-
-        RpcOnBallSpawned(m_Ball);
-    }
-
-    [ClientRpc]
-    void RpcOnBallSpawned(Ball a_Ball)
-    {
-        m_Ball = a_Ball;
-        a_Ball.Player = this;
+        GameState.Instance.HoleTriggered(a_Player);
     }
 }

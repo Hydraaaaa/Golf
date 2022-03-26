@@ -1,6 +1,9 @@
+using System;
 using UnityEngine;
 
+[Serializable]
 public class Stage
 {
-    public Vector3 StartPos;
+    public Transform StartPos;
+    public Hole[] Holes;
 }

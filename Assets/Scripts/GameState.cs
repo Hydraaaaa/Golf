@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
@@ -20,13 +21,89 @@ public class GameState : NetworkBehaviour
 
     public int CurrentStage => m_CurrentStage;
 
-    [SerializeField] Stage[] m_Stages;
+    public int StageCount { get { return m_Stages.Length; } }
 
-    [SyncVar] int m_CurrentStage;
+    [SerializeField] Stage[] m_Stages;
+    [SerializeField] Ball m_BallPrefab;
+
+    [SyncVar] int m_CurrentStage = -1;
+
+    readonly SyncList<Player> m_Players = new SyncList<Player>();
+
+    readonly SyncDictionary<Player, PlayerStageInfo> m_PlayersInRound = new SyncDictionary<Player, PlayerStageInfo>();
+
+    public event Action<Player> OnPlayerAdded;
+    public event Action<Player, int> OnPlayerRemoved;
+
+    public void AddPlayer(Player a_Player)
+    {
+        m_Players.Add(a_Player);
+
+        OnPlayerAdded?.Invoke(a_Player);
+    }
+
+    public void RemovePlayer(Player a_Player)
+    {
+        OnPlayerRemoved?.Invoke(a_Player, m_Players.IndexOf(a_Player));
+
+        m_Players.Remove(a_Player);
+
+        if (m_PlayersInRound.ContainsKey(a_Player))
+        {
+            m_PlayersInRound.Remove(a_Player);
+        }
+    }
 
     public void NextStage()
     {
         m_CurrentStage++;
+
+        m_PlayersInRound.Clear();
+
+        for (int i = 0; i < m_Players.Count; i++)
+        {
+            m_PlayersInRound[m_Players[i]] = new PlayerStageInfo();
+
+            Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, Quaternion.identity);
+            _Ball.Player = m_Players[i];
+            NetworkServer.Spawn(_Ball.gameObject, connectionToClient);
+
+            m_Players[i].OnStartStage(_Ball);
+        }
+    }
+
+    public bool IsHoleActive(Hole a_Hole)
+    {
+        for (int i = 0; i < m_Stages[m_CurrentStage].Holes.Length; i++)
+        {
+            if (a_Hole == m_Stages[m_CurrentStage].Holes[i])
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void HoleTriggered(Player a_Player)
+    {
+        m_PlayersInRound[a_Player].Finished = true;
+
+        bool _Finished = true;
+
+        foreach (PlayerStageInfo _Info in m_PlayersInRound.Values)
+        {
+            if (!_Info.Finished)
+            {
+                _Finished = false;
+                break;
+            }
+        }
+
+        if (_Finished)
+        {
+            NextStage();
+        }
     }
 
     #region Start & Stop Callbacks
