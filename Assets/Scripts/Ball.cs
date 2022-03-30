@@ -16,7 +16,7 @@ public class Ball : NetworkBehaviour
     [SerializeField] Rigidbody m_Rigidbody;
     public Player Player { get; set; }
 
-    public override void OnStartAuthority()
+    public override void OnStartLocalPlayer()
     {
         Debug.Log("Ball.OnStartAuthority");
     }

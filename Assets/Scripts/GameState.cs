@@ -19,57 +19,70 @@ public class GameState : NetworkBehaviour
         Instance = this;
     }
 
-    public int CurrentStage => m_CurrentStage;
-
     public int StageCount { get { return m_Stages.Length; } }
+    public int CurrentStage => m_CurrentStage;
+    public Transform CameraStartPos => m_CameraStartPos;
 
     [SerializeField] Stage[] m_Stages;
     [SerializeField] Ball m_BallPrefab;
+    [SerializeField] Transform m_CameraStartPos;
 
     [SyncVar] int m_CurrentStage = -1;
 
-    readonly SyncList<Player> m_Players = new SyncList<Player>();
+    readonly SyncDictionary<Player, PlayerInfo> m_Players = new SyncDictionary<Player, PlayerInfo>();
 
-    readonly SyncDictionary<Player, PlayerStageInfo> m_PlayersInRound = new SyncDictionary<Player, PlayerStageInfo>();
+    readonly SyncList<Player> m_PlayersInRound = new SyncList<Player>();
 
     public event Action<Player> OnPlayerAdded;
-    public event Action<Player, int> OnPlayerRemoved;
+    public event Action<Player> OnPlayerRemoved;
+    public event Action<Player, int> OnStroke;
 
     public void AddPlayer(Player a_Player)
     {
-        m_Players.Add(a_Player);
+        m_Players[a_Player] = new PlayerInfo();
+        m_Players[a_Player].Strokes = new int[m_Stages.Length];
 
         OnPlayerAdded?.Invoke(a_Player);
     }
 
     public void RemovePlayer(Player a_Player)
     {
-        OnPlayerRemoved?.Invoke(a_Player, m_Players.IndexOf(a_Player));
+        OnPlayerRemoved?.Invoke(a_Player);
 
         m_Players.Remove(a_Player);
-
-        if (m_PlayersInRound.ContainsKey(a_Player))
-        {
-            m_PlayersInRound.Remove(a_Player);
-        }
+        m_PlayersInRound.Remove(a_Player);
     }
 
     public void NextStage()
     {
-        m_CurrentStage++;
-
-        m_PlayersInRound.Clear();
-
-        for (int i = 0; i < m_Players.Count; i++)
+        if (m_CurrentStage == m_Stages.Length - 1)
         {
-            m_PlayersInRound[m_Players[i]] = new PlayerStageInfo();
-
-            Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, Quaternion.identity);
-            _Ball.Player = m_Players[i];
-            NetworkServer.Spawn(_Ball.gameObject, m_Players[i].connectionToClient);
-
-            m_Players[i].OnStartStage(_Ball);
+            // TODO: End Game
         }
+        else
+        {
+            m_CurrentStage++;
+
+            m_PlayersInRound.Clear();
+
+            foreach (var _Player in m_Players.Keys)
+            {
+                m_PlayersInRound.Add(_Player);
+
+                Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, Quaternion.identity);
+                _Ball.Player = _Player;
+                NetworkServer.Spawn(_Ball.gameObject, _Player.connectionToClient);
+
+                _Player.OnStartStage(_Ball);
+            }
+        }
+    }
+
+    public void Stroke(Player a_Player)
+    {
+        m_Players[a_Player].Strokes[m_CurrentStage]++;
+
+        OnStroke?.Invoke(a_Player, m_Players[a_Player].Strokes[m_CurrentStage]);
     }
 
     public bool IsHoleActive(Hole a_Hole)
@@ -87,13 +100,13 @@ public class GameState : NetworkBehaviour
 
     public void HoleTriggered(Player a_Player)
     {
-        m_PlayersInRound[a_Player].Finished = true;
+        m_Players[a_Player].HasFinishedCurrentStage = true;
 
         bool _Finished = true;
 
-        foreach (PlayerStageInfo _Info in m_PlayersInRound.Values)
+        foreach (Player _Player in m_PlayersInRound)
         {
-            if (!_Info.Finished)
+            if (!m_Players[_Player].HasFinishedCurrentStage)
             {
                 _Finished = false;
                 break;

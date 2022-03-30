@@ -14,10 +14,7 @@ public class Player : NetworkBehaviour
     [SerializeField] Camera m_BallCamera;
     [SerializeField] float m_MaxPower = 10.0f;
 
-    public int CurrentStroke => m_CurrentStroke;
-
-    // TODO: Replace SyncVar with populating GameState stroke count
-    [SyncVar] int m_CurrentStroke;
+    public int Index = 0;
 
     Ball m_Ball;
 
@@ -53,6 +50,8 @@ public class Player : NetworkBehaviour
                         _Forward.Normalize();
 
                         m_Ball.Rigidbody.AddForce(_Forward * m_Power * 3, ForceMode.Impulse);
+
+                        CmdStroke();
 
                         Debug.Log($"Fired at power {m_Power}");
                     }
@@ -90,6 +89,12 @@ public class Player : NetworkBehaviour
         }
     }
 
+    [Command]
+    void CmdStroke()
+    {
+        GameState.Instance.Stroke(this);
+    }
+
     public override void OnStartServer()
     {
         GameState.Instance.AddPlayer(this);
@@ -102,7 +107,12 @@ public class Player : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        m_BallCamera = Instantiate(m_BallCamera, Vector3.one, Quaternion.identity);
+        m_BallCamera = Instantiate(m_BallCamera);
+
+        Transform _Transform = GameState.Instance.CameraStartPos;
+
+        m_BallCamera.transform.position = _Transform.position;
+        m_BallCamera.transform.rotation = _Transform.rotation;
 
         m_IsPlaying = false;
     }
