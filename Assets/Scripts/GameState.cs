@@ -36,6 +36,7 @@ public class GameState : NetworkBehaviour
     public event Action<Player> OnPlayerAdded;
     public event Action<Player> OnPlayerRemoved;
     public event Action<Player, int> OnStroke;
+    public event Action<Player, string> OnPlayerNameSet;
 
     public void AddPlayer(Player a_Player)
     {
@@ -69,7 +70,7 @@ public class GameState : NetworkBehaviour
             {
                 m_PlayersInRound.Add(_Player);
 
-                Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, Quaternion.identity);
+                Ball _Ball = Instantiate(m_BallPrefab, m_Stages[m_CurrentStage].StartPos.position, m_Stages[m_CurrentStage].StartPos.rotation);
                 _Ball.Player = _Player;
                 NetworkServer.Spawn(_Ball.gameObject, _Player.connectionToClient);
 
@@ -117,6 +118,13 @@ public class GameState : NetworkBehaviour
         {
             NextStage();
         }
+    }
+
+    public void SetPlayerName(Player a_Player, string a_Name)
+    {
+        m_Players[a_Player].Name = a_Name;
+
+        OnPlayerNameSet?.Invoke(a_Player, a_Name);
     }
 
     #region Start & Stop Callbacks

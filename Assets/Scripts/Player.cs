@@ -115,6 +115,15 @@ public class Player : NetworkBehaviour
         m_BallCamera.transform.rotation = _Transform.rotation;
 
         m_IsPlaying = false;
+
+        CmdSetPlayerName(MainMenu.PlayerName);
+    }
+
+    [Command]
+    void CmdSetPlayerName(string a_Name)
+    {
+        Debug.Log($"SetPlayerName: {a_Name}");
+        GameState.Instance.SetPlayerName(this, a_Name);
     }
 
     [ClientRpc]
@@ -124,6 +133,8 @@ public class Player : NetworkBehaviour
         a_Ball.Player = this;
 
         m_IsPlaying = true;
+
+        m_BallCamera.transform.rotation = a_Ball.transform.rotation;
     }
 
     [Command]
