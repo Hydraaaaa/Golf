@@ -131,6 +131,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0.1
   m_Rigidbody: {fileID: -5406194366683979474}
+  m_Drag: 0.5
 --- !u!54 &-5406194366683979474
 Rigidbody:
   m_ObjectHideFlags: 0
