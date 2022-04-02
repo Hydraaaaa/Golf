@@ -30,32 +30,41 @@ public class Player : NetworkBehaviour
         {
             if (m_IsPlaying)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (m_Ball.Rigidbody.velocity.magnitude < 0.0001f)
                 {
-                    m_IsAiming = true;
-                    m_Power = 0;
-
-                    Cursor.lockState = CursorLockMode.Locked;
-                    Cursor.visible = false;
-                }
-
-                if (Input.GetMouseButtonUp(0))
-                {
-                    m_IsAiming = false;
-
-                    if (m_Power > 0)
+                    if (Input.GetMouseButtonDown(0))
                     {
-                        Vector3 _Forward = m_BallCamera.transform.forward;
-                        _Forward.y = 0;
-                        _Forward.Normalize();
+                        m_IsAiming = true;
+                        m_Power = 0;
 
-                        m_Ball.Rigidbody.AddForce(_Forward * m_Power * 3, ForceMode.Impulse);
-
-                        CmdStroke();
-
-                        Debug.Log($"Fired at power {m_Power}");
+                        Cursor.lockState = CursorLockMode.Locked;
+                        Cursor.visible = false;
                     }
 
+                    if (Input.GetMouseButtonUp(0) &&
+                        m_IsAiming)
+                    {
+                        m_IsAiming = false;
+
+                        if (m_Power > 0)
+                        {
+                            Vector3 _Forward = m_BallCamera.transform.forward;
+                            _Forward.y = 0;
+                            _Forward.Normalize();
+
+                            m_Ball.Rigidbody.AddForce(_Forward * m_Power * 3, ForceMode.Impulse);
+
+                            CmdStroke();
+
+                            Debug.Log($"Fired at power {m_Power}");
+                        }
+
+                        UI.Instance.PowerBar.fillAmount = 0;
+                    }
+                }
+                else // Future proofing for cases where the ball can be displaced before a swing
+                {
+                    m_IsAiming = false;
                     UI.Instance.PowerBar.fillAmount = 0;
                 }
 
