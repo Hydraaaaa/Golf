@@ -32,7 +32,8 @@ public class Player : NetworkBehaviour
             {
                 if (m_Ball.Rigidbody.velocity.magnitude < 0.0001f)
                 {
-                    if (Input.GetMouseButtonDown(0))
+                    if (Input.GetMouseButtonDown(0) &&
+                        !UI.Instance.IsEscapeMenuOpen)
                     {
                         m_IsAiming = true;
                         m_Power = 0;

@@ -39,4 +39,9 @@ public class MainMenu : MonoBehaviour
         m_NetworkManager.networkAddress = m_IPInput.text;
         m_NetworkManager.StartClient();
     }
+
+    public void OnQuit()
+    {
+        Application.Quit();
+    }
 }
