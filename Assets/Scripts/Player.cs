@@ -22,7 +22,12 @@ public class Player : NetworkBehaviour
 
     bool m_IsAiming;
 
+    bool m_IsStopped;
+
     float m_Power;
+
+    Vector3 m_PreviousLocation;
+    Quaternion m_PreviousRotation;
 
     void Update()
     {
@@ -32,6 +37,12 @@ public class Player : NetworkBehaviour
             {
                 if (m_Ball.Rigidbody.velocity.magnitude < 0.0001f)
                 {
+                    if (!m_IsStopped)
+                    {
+                        m_IsStopped = true;
+                        OnBallStopped();
+                    }
+
                     if (Input.GetMouseButtonDown(0) &&
                         !UI.Instance.IsEscapeMenuOpen)
                     {
@@ -53,11 +64,15 @@ public class Player : NetworkBehaviour
                             _Forward.y = 0;
                             _Forward.Normalize();
 
+                            m_PreviousLocation = m_Ball.transform.position;
+                            m_PreviousRotation = m_Ball.transform.rotation;
+
                             m_Ball.Rigidbody.AddForce(_Forward * m_Power * 3, ForceMode.Impulse);
 
                             CmdStroke();
 
                             Debug.Log($"Fired at power {m_Power}");
+                            m_IsStopped = false;
                         }
 
                         UI.Instance.PowerBar.fillAmount = 0;
@@ -65,6 +80,7 @@ public class Player : NetworkBehaviour
                 }
                 else // Future proofing for cases where the ball can be displaced before a swing
                 {
+                    m_IsStopped = false;
                     m_IsAiming = false;
                     UI.Instance.PowerBar.fillAmount = 0;
                 }
@@ -96,6 +112,35 @@ public class Player : NetworkBehaviour
                     }
                 }
             }
+        }
+    }
+
+    void OnBallStopped()
+    {
+        // TODO: Check for out of bounds
+        Collider[] _Colliders = Physics.OverlapSphere(m_Ball.transform.position, m_Ball.transform.localScale.x / 2.0f);
+
+        Collider[] _InboundsTriggers = GameState.Instance.Stages[GameState.Instance.CurrentStage].InboundsTriggers;
+
+        bool _IsInbounds = false;
+
+        for (int i = 0; i < _Colliders.Length; i++)
+        {
+            for (int j = 0; j < _InboundsTriggers.Length; j++)
+            {
+                if (_Colliders[i] == _InboundsTriggers[j])
+                {
+                    _IsInbounds = true;
+                    break;
+                }
+            }
+        }
+
+        if (!_IsInbounds)
+        {
+            m_Ball.transform.position = m_PreviousLocation;
+            m_Ball.transform.rotation = m_PreviousRotation;
+            m_Ball.Rigidbody.velocity = Vector3.zero;
         }
     }
 
@@ -139,6 +184,8 @@ public class Player : NetworkBehaviour
     [ClientRpc]
     public void OnStartStage(Ball a_Ball)
     {
+        GameState.Instance.PregameText.gameObject.SetActive(false);
+
         m_Ball = a_Ball;
         a_Ball.Player = this;
 

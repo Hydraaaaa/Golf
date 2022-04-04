@@ -18,6 +18,8 @@ public class GameState : NetworkBehaviour
     public int StageCount { get { return m_Stages.Length; } }
     public int CurrentStage => m_CurrentStage;
     public Transform CameraStartPos => m_CameraStartPos;
+    public TextMeshProUGUI PregameText => m_PregameText;
+    public Stage[] Stages => m_Stages;
 
     [SerializeField] Stage[] m_Stages;
     [SerializeField] Ball m_BallPrefab;
@@ -58,8 +60,6 @@ public class GameState : NetworkBehaviour
 
     public void NextStage()
     {
-        m_PregameText.gameObject.SetActive(false);
-
         if (m_CurrentStage == m_Stages.Length - 1)
         {
             // TODO: End Game
