@@ -35,7 +35,8 @@ public class Player : NetworkBehaviour
         {
             if (m_IsPlaying)
             {
-                if (m_Ball.Rigidbody.velocity.magnitude < 0.0001f)
+                if (m_Ball.Rigidbody.velocity.magnitude < 0.0001f ||
+                    m_Ball.transform.position.y < -10)
                 {
                     if (!m_IsStopped)
                     {
